@@ -206,6 +206,7 @@ connection.onDidChangeWatchedFiles((change) => {
     connection.console.log("We received an file change event");
 });
 
+// Implements go to definnition
 connection.onDefinition((params) => {
     const doc: TextDocument | undefined = documents.get(
         params.textDocument.uri
@@ -229,19 +230,23 @@ connection.onDefinition((params) => {
     }
 
     const word: string = text.slice(wordStart + 1, wordEnd);
+    console.log(word);
     const words: string[] = lines[params.position.line].split(/\s+/);
     const ind: number = words.indexOf(word);
     let formula: string = "";
 
     if (ind < 2) return undefined;
     else if (words[ind - 2] == "by") formula = words[ind - 1];
+    console.log(formula);
 
     let regexPattern: string;
 
     if (formula == "rule") {
         regexPattern = `\\s*(--{3,}|—{3,}|―{3,}|─{3,})\\s*${word}\\s*`;
-    } else {
+    } else if (formula == "theorem" || formula == "lemma") {
         regexPattern = `\\s*${formula}\\s+${word}.*`;
+    } else {
+        return undefined;
     }
 
     const regex: RegExp = new RegExp(regexPattern);
