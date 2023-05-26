@@ -214,7 +214,16 @@ connection.onDefinition((params) => {
 
     if (doc == null) return undefined;
 
-    const whitespaceCharacters: String[] = [" ", "\t", "\n", "\r", "\f", "\v"];
+    const badCharacters: String[] = [
+        " ",
+        "\t",
+        "\n",
+        "\r",
+        "\f",
+        "\v",
+        "(",
+        ")",
+    ];
     const text: string = doc.getText();
     const lines: string[] = text.split("\n");
     const offset: number = doc.offsetAt(params.position);
@@ -222,22 +231,53 @@ connection.onDefinition((params) => {
     let wordEnd: number = offset;
 
     while (
-        !whitespaceCharacters.includes(text[wordStart]) ||
-        !whitespaceCharacters.includes(text[wordEnd])
+        !badCharacters.includes(text[wordStart]) ||
+        !badCharacters.includes(text[wordEnd])
     ) {
-        if (!whitespaceCharacters.includes(text[wordStart])) --wordStart;
-        if (!whitespaceCharacters.includes(text[wordEnd])) ++wordEnd;
+        if (!badCharacters.includes(text[wordStart])) --wordStart;
+        if (!badCharacters.includes(text[wordEnd])) ++wordEnd;
     }
 
     const word: string = text.slice(wordStart + 1, wordEnd);
-    console.log(word);
+
+    // Checks if it is a terminal
+    let terminals: string[] = [];
+    let termLine: number = -1;
+
+    for (let i = 0; i < lines.length; ++i) {
+        if (lines[i].startsWith("terminals")) {
+            const terms = lines[i].slice(9);
+            terminals = terms.split(/\s+/).filter((str) => str !== "");
+            termLine = i;
+            break;
+        }
+    }
+
+    if (terminals.includes(word))
+        return {
+            uri: params.textDocument.uri,
+            range: {
+                start: {
+                    line: termLine,
+                    character: lines[termLine].slice(9).indexOf(word) + 9,
+                },
+                end: {
+                    line: termLine,
+                    character:
+                        lines[termLine].slice(9).indexOf(word) +
+                        word.length +
+                        9,
+                },
+            },
+        };
+
+    // Checks if it is a rule, theorem, or lemma
     const words: string[] = lines[params.position.line].split(/\s+/);
     const ind: number = words.indexOf(word);
     let formula: string = "";
 
     if (ind < 2) return undefined;
     else if (words[ind - 2] == "by") formula = words[ind - 1];
-    console.log(formula);
 
     let regexPattern: string;
 
