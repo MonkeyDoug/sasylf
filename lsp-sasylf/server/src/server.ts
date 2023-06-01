@@ -208,9 +208,7 @@ connection.onDidChangeWatchedFiles((change) => {
 
 // Implements go to definnition
 connection.onDefinition((params) => {
-    const doc: TextDocument | undefined = documents.get(
-        params.textDocument.uri
-    );
+    const doc = documents.get(params.textDocument.uri);
 
     if (doc == null) return undefined;
 
@@ -224,11 +222,11 @@ connection.onDefinition((params) => {
         "(",
         ")",
     ];
-    const text: string = doc.getText();
-    const lines: string[] = text.split("\n");
-    const offset: number = doc.offsetAt(params.position);
-    let wordStart: number = offset;
-    let wordEnd: number = offset;
+    const text = doc.getText();
+    const lines = text.split("\n");
+    const offset = doc.offsetAt(params.position);
+    let wordStart = offset;
+    let wordEnd = offset;
 
     while (
         !badCharacters.includes(text[wordStart]) ||
@@ -238,16 +236,16 @@ connection.onDefinition((params) => {
         if (!badCharacters.includes(text[wordEnd])) ++wordEnd;
     }
 
-    const word: string = text.slice(wordStart + 1, wordEnd);
+    const word = text.slice(wordStart + 1, wordEnd);
 
     // Checks if it is a terminal
     let terminals: string[] = [];
-    let termLine: number = -1;
+    let termLine = -1;
 
     for (let i = 0; i < lines.length; ++i) {
         if (lines[i].startsWith("terminals")) {
             const terms = lines[i].slice(9);
-            terminals = terms.split(/\s+/).filter((str) => str !== "");
+            terminals = terms.split(/\s+/).filter((term) => term !== "");
             termLine = i;
             break;
         }
@@ -271,10 +269,96 @@ connection.onDefinition((params) => {
             },
         };
 
+    // Checks for syntaxes
+    const noCommentText = text
+        .replace(/\/\/.*/g, "")
+        .replace(/\/\*[\s\S]*?\*\//g, "");
+    const syntaxInd = noCommentText.indexOf("syntax");
+    const judgementInd = noCommentText.indexOf("judgment");
+    const syntaxText = noCommentText
+        .substring(syntaxInd, judgementInd)
+        .slice(6);
+    const symbols = Array.from(
+        new Set(
+            syntaxText
+                .split(/\s+/)
+                .filter(
+                    (symbol) =>
+                        !["", "::=", ":=", "|"].includes(symbol) &&
+                        !terminals.includes(symbol)
+                )
+        )
+    );
+    const escapedSymbols = symbols.map((symbol) =>
+        symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    );
+
+    const addendRegex = new RegExp(`(${escapedSymbols.join("|")})('|\d)*`);
+    const addendMatch = addendRegex.exec(word);
+
+    if (addendMatch) {
+        const root = addendMatch[1];
+
+        const symbolPattern = `(${escapedSymbols.join("|")})`;
+        const symbolRegex = new RegExp(symbolPattern, "g");
+        const badRegex = /\/\/.*|\/\*[\s\S]*?\*\/|terminals|syntax/g;
+
+        const symbolMatches: number[] = [];
+        let symbolMatch: RegExpExecArray | null;
+
+        while ((symbolMatch = symbolRegex.exec(text)) !== null) {
+            symbolMatches.push(
+                symbolMatch.index + symbolMatch[0].indexOf(symbolMatch[1])
+            );
+        }
+
+        const commentIndices: number[] = [];
+        let commentMatch: RegExpExecArray | null;
+
+        while ((commentMatch = badRegex.exec(text)) !== null) {
+            const startIndex = commentMatch.index;
+            const endIndex = startIndex + commentMatch[0].length;
+
+            for (let i = startIndex; i < endIndex; ++i) {
+                commentIndices.push(i);
+            }
+        }
+
+        const desiredIndices = symbolMatches.filter(
+            (index) => !commentIndices.includes(index)
+        );
+
+        const regex = new RegExp(root, "g");
+        const syntaxEndInd = text.indexOf("syntax") + 5;
+
+        let match: RegExpExecArray | null;
+        let index = 0;
+
+        while ((match = regex.exec(text)) !== null) {
+            if (
+                desiredIndices.includes(match.index) &&
+                match.index > syntaxEndInd
+            ) {
+                index = match.index;
+                break;
+            }
+        }
+
+        return {
+            uri: params.textDocument.uri,
+            range: {
+                start: doc.positionAt(index),
+                end: doc.positionAt(index + root.length),
+            },
+        };
+    }
+
+    // Checks for judgements
+
     // Checks if it is a rule, theorem, or lemma
-    const words: string[] = lines[params.position.line].split(/\s+/);
-    const ind: number = words.indexOf(word);
-    let formula: string = "";
+    const words = lines[params.position.line].split(/\s+/);
+    const ind = words.indexOf(word);
+    let formula = "";
 
     if (ind < 2) return undefined;
     else if (words[ind - 2] == "by") formula = words[ind - 1];
@@ -289,8 +373,8 @@ connection.onDefinition((params) => {
         return undefined;
     }
 
-    const regex: RegExp = new RegExp(regexPattern);
-    let line: number = -1;
+    const regex = new RegExp(regexPattern);
+    let line = -1;
 
     for (let i = 0; i < lines.length; ++i) {
         if (regex.test(lines[i])) {
