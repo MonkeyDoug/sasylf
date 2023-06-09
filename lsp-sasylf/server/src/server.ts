@@ -239,121 +239,128 @@ connection.onDefinition((params) => {
     const word = text.slice(wordStart + 1, wordEnd);
 
     // Checks if it is a terminal
-    let terminals: string[] = [];
-    let termLine = -1;
+    // let terminals: string[] = [];
+    // let termLine = -1;
 
-    for (let i = 0; i < lines.length; ++i) {
-        if (lines[i].startsWith("terminals")) {
-            const terms = lines[i].slice(9);
-            terminals = terms.split(/\s+/).filter((term) => term !== "");
-            termLine = i;
-            break;
-        }
-    }
+    // for (let i = 0; i < lines.length; ++i) {
+    //     if (lines[i].startsWith("terminals")) {
+    //         const terms = lines[i].slice(9);
+    //         terminals = terms.split(/\s+/).filter((term) => term !== "");
+    //         termLine = i;
+    //         break;
+    //     }
+    // }
 
-    if (terminals.includes(word))
-        return {
-            uri: params.textDocument.uri,
-            range: {
-                start: {
-                    line: termLine,
-                    character: lines[termLine].slice(9).indexOf(word) + 9,
-                },
-                end: {
-                    line: termLine,
-                    character:
-                        lines[termLine].slice(9).indexOf(word) +
-                        word.length +
-                        9,
-                },
-            },
-        };
+    // if (terminals.includes(word))
+    //     return {
+    //         uri: params.textDocument.uri,
+    //         range: {
+    //             start: {
+    //                 line: termLine,
+    //                 character: lines[termLine].slice(9).indexOf(word) + 9,
+    //             },
+    //             end: {
+    //                 line: termLine,
+    //                 character:
+    //                     lines[termLine].slice(9).indexOf(word) +
+    //                     word.length +
+    //                     9,
+    //             },
+    //         },
+    //     };
 
     // Checks for syntaxes
-    const noCommentText = text
-        .replace(/\/\/.*/g, "")
-        .replace(/\/\*[\s\S]*?\*\//g, "");
-    const syntaxInd = noCommentText.indexOf("syntax");
-    const judgementInd = noCommentText.indexOf("judgment");
-    const syntaxText = noCommentText
-        .substring(syntaxInd, judgementInd)
-        .slice(6);
-    const symbols = Array.from(
-        new Set(
-            syntaxText
-                .split(/\s+/)
-                .filter(
-                    (symbol) =>
-                        !["", "::=", ":=", "|"].includes(symbol) &&
-                        !terminals.includes(symbol)
-                )
-        )
-    );
-    const escapedSymbols = symbols.map((symbol) =>
-        symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    );
+    // const noCommentText = text
+    //     .replace(/\/\/.*/g, "")
+    //     .replace(/\/\*[\s\S]*?\*\//g, "");
+    // const syntaxInd = noCommentText.indexOf("syntax");
+    // const judgementInd = noCommentText.indexOf("judgment");
+    // const syntaxText = noCommentText
+    //     .substring(syntaxInd, judgementInd)
+    //     .slice(6);
+    // const symbols = Array.from(
+    //     new Set(
+    //         syntaxText
+    //             .split(/\s+/)
+    //             .filter(
+    //                 (symbol) =>
+    //                     !["", "::=", ":=", "|"].includes(symbol) &&
+    //                     !terminals.includes(symbol)
+    //             )
+    //     )
+    // );
+    // const escapedSymbols = symbols.map((symbol) =>
+    //     symbol.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    // );
 
-    const addendRegex = new RegExp(`(${escapedSymbols.join("|")})('|\d)*`);
-    const addendMatch = addendRegex.exec(word);
+    // const addendRegex = new RegExp(`(${escapedSymbols.join("|")})('|\d)*`);
+    // const addendMatch = addendRegex.exec(word);
 
-    if (addendMatch) {
-        const root = addendMatch[1];
+    // if (addendMatch) {
+    //     const root = addendMatch[1];
 
-        const symbolPattern = `(${escapedSymbols.join("|")})`;
-        const symbolRegex = new RegExp(symbolPattern, "g");
-        const badRegex = /\/\/.*|\/\*[\s\S]*?\*\/|terminals|syntax/g;
+    //     const symbolPattern = `(${escapedSymbols.join("|")})`;
+    //     const symbolRegex = new RegExp(symbolPattern, "g");
+    //     const badRegex = /\/\/.*|\/\*[\s\S]*?\*\/|terminals|syntax/g;
 
-        const symbolMatches: number[] = [];
-        let symbolMatch: RegExpExecArray | null;
+    //     const symbolMatches: number[] = [];
+    //     let symbolMatch: RegExpExecArray | null;
 
-        while ((symbolMatch = symbolRegex.exec(text)) !== null) {
-            symbolMatches.push(
-                symbolMatch.index + symbolMatch[0].indexOf(symbolMatch[1])
-            );
-        }
+    //     while ((symbolMatch = symbolRegex.exec(text)) !== null) {
+    //         symbolMatches.push(
+    //             symbolMatch.index + symbolMatch[0].indexOf(symbolMatch[1])
+    //         );
+    //     }
 
-        const commentIndices: number[] = [];
-        let commentMatch: RegExpExecArray | null;
+    //     const commentIndices: number[] = [];
+    //     let commentMatch: RegExpExecArray | null;
 
-        while ((commentMatch = badRegex.exec(text)) !== null) {
-            const startIndex = commentMatch.index;
-            const endIndex = startIndex + commentMatch[0].length;
+    //     while ((commentMatch = badRegex.exec(text)) !== null) {
+    //         const startIndex = commentMatch.index;
+    //         const endIndex = startIndex + commentMatch[0].length;
 
-            for (let i = startIndex; i < endIndex; ++i) {
-                commentIndices.push(i);
-            }
-        }
+    //         for (let i = startIndex; i < endIndex; ++i) {
+    //             commentIndices.push(i);
+    //         }
+    //     }
 
-        const desiredIndices = symbolMatches.filter(
-            (index) => !commentIndices.includes(index)
-        );
+    //     const desiredIndices = symbolMatches.filter(
+    //         (index) => !commentIndices.includes(index)
+    //     );
 
-        const regex = new RegExp(root, "g");
-        const syntaxEndInd = text.indexOf("syntax") + 5;
+    //     const regex = new RegExp(root, "g");
+    //     const syntaxEndInd = text.indexOf("syntax") + 5;
 
-        let match: RegExpExecArray | null;
-        let index = 0;
+    //     let match: RegExpExecArray | null;
+    //     let index = 0;
 
-        while ((match = regex.exec(text)) !== null) {
-            if (
-                desiredIndices.includes(match.index) &&
-                match.index > syntaxEndInd
-            ) {
-                index = match.index;
-                break;
-            }
-        }
+    //     while ((match = regex.exec(text)) !== null) {
+    //         if (
+    //             desiredIndices.includes(match.index) &&
+    //             match.index > syntaxEndInd
+    //         ) {
+    //             index = match.index;
+    //             break;
+    //         }
+    //     }
 
-        return {
-            uri: params.textDocument.uri,
-            range: {
-                start: doc.positionAt(index),
-                end: doc.positionAt(index + root.length),
-            },
-        };
-    }
+    //     return {
+    //         uri: params.textDocument.uri,
+    //         range: {
+    //             start: doc.positionAt(index),
+    //             end: doc.positionAt(index + root.length),
+    //         },
+    //     };
+    // }
 
     // Checks for judgements
+    // const judgmentIndices = lines.reduce((indices: number[], line, index) => {
+    //     if (line.startsWith("judgment")) {
+    //         indices.push(index);
+    //     }
+
+    //     return indices;
+    // }, []);
 
     // Checks if it is a rule, theorem, or lemma
     const words = lines[params.position.line].split(/\s+/);
