@@ -228,6 +228,7 @@ connection.onDefinition((params) => {
     let wordStart = offset;
     let wordEnd = offset;
 
+    // Finds the word underneath the cursor
     while (
         !badCharacters.includes(text[wordStart]) ||
         !badCharacters.includes(text[wordEnd])
@@ -372,6 +373,7 @@ connection.onDefinition((params) => {
 
     let regexPattern: string;
 
+    // Creates the regex depending on whether it is a rule or not
     if (formula == "rule") {
         regexPattern = `\\s*(--{3,}|—{3,}|―{3,}|─{3,})\\s*${word}\\s*`;
     } else if (formula == "theorem" || formula == "lemma") {
