@@ -61,6 +61,7 @@ connection.onInitialize((params: InitializeParams) => {
 			codeActionProvider: { resolveProvider: true },
 			// completionProvider: { resolveProvider: true },
 			documentSymbolProvider: true,
+			definitionProvider: true,
 		},
 	};
 	if (hasWorkspaceFolderCapability) {
@@ -76,7 +77,7 @@ connection.onInitialized(() => {
 		// Register for all configuration changes.
 		connection.client.register(
 			DidChangeConfigurationNotification.type,
-			undefined
+			undefined,
 		);
 	}
 	if (hasWorkspaceFolderCapability) {
@@ -161,7 +162,7 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	const command = spawnSync(
 		`java -jar ${__dirname}/../../../SASyLF.jar`,
 		["--lsp", "--stdin"],
-		{ input: text, shell: true }
+		{ input: text, shell: true },
 	);
 
 	const parsedJson = JSON.parse(command.stdout.toString());
@@ -212,7 +213,68 @@ async function validateTextDocument(textDocument: TextDocument): Promise<void> {
 	connection.sendDiagnostics({ uri: textDocument.uri, diagnostics });
 }
 
-connection.onDocumentSymbol((identifier) => {
+// Implements go to definition
+connection.onDefinition((params) => {
+	const doc = documents.get(params.textDocument.uri);
+
+	if (doc == null) return undefined;
+
+	const badCharacters: String[] = [" ", "\t", "\n", "\r", "\f", "\v", "(", ")"];
+	const text = doc.getText();
+	const offset = doc.offsetAt(params.position);
+	let wordStart = offset;
+	let wordEnd = offset;
+
+	// Finds the word underneath the cursor
+	while (
+		!badCharacters.includes(text[wordStart]) ||
+		!badCharacters.includes(text[wordEnd])
+	) {
+		if (!badCharacters.includes(text[wordStart])) --wordStart;
+		if (!badCharacters.includes(text[wordEnd])) ++wordEnd;
+	}
+
+	const word = text.slice(wordStart + 1, wordEnd);
+
+	// Checks if it is a theorem or lemma
+	const theoremNames = compUnit.Theorems.map((theorem) => theorem.Name);
+
+	if (theoremNames.includes(word)) {
+		const theorem = compUnit.Theorems[theoremNames.indexOf(word)];
+
+		return {
+			uri: params.textDocument.uri,
+			range: {
+				start: { line: theorem.Line - 1, character: theorem.Column - 1 },
+				end: { line: theorem.Line - 1, character: theorem.Column - 1 },
+			},
+		};
+	}
+
+	// Checks if it is a rule
+	const rules = compUnit.Judgments.map((judgment) => judgment.Rules).flat();
+	const ruleNames = rules.map((rule) => rule.Name);
+
+	if (ruleNames.includes(word)) {
+		const rule = rules[ruleNames.indexOf(word)];
+
+		if (rule["In File"]) {
+			return {
+				uri: params.textDocument.uri,
+				range: {
+					start: { line: rule.Line - 1, character: rule.Column - 1 },
+					end: { line: rule.Line - 1, character: rule.Column - 1 },
+				},
+			};
+		}
+
+		return undefined;
+	}
+
+	return undefined;
+});
+
+connection.onDocumentSymbol((_) => {
 	// Adds the module to the symbols
 	const res: DocumentSymbol[] = [];
 	const module = compUnit.Module;
@@ -241,7 +303,7 @@ connection.onDocumentSymbol((identifier) => {
 					line: module["End Line"] - 1,
 					character: module["End Column"] - 1,
 				},
-			}
+			},
 		);
 
 		res.push(moduleSymbol);
@@ -277,7 +339,7 @@ connection.onDocumentSymbol((identifier) => {
 						line: clause.Line - 1,
 						character: clause.Column - 1,
 					},
-				}
+				},
 			);
 
 			children.push(clauseSymbol);
@@ -307,7 +369,7 @@ connection.onDocumentSymbol((identifier) => {
 					character: declaration.Column - 1,
 				},
 			},
-			children
+			children,
 		);
 
 		res.push(declarationSymbol);
@@ -340,7 +402,7 @@ connection.onDocumentSymbol((identifier) => {
 					line: sugar.Line - 1,
 					character: sugar.Column - 1,
 				},
-			}
+			},
 		);
 
 		res.push(sugarSymbol);
@@ -381,7 +443,7 @@ connection.onDocumentSymbol((identifier) => {
 					line: theorem.Line - 1,
 					character: theorem.Column - 1,
 				},
-			}
+			},
 		);
 
 		res.push(theoremSymbol);
@@ -426,7 +488,7 @@ connection.onDocumentSymbol((identifier) => {
 							line: rule.Line - 1,
 							character: rule.Column - 1,
 						},
-					}
+					},
 				);
 
 				children.push(ruleSymbol);
@@ -457,7 +519,7 @@ connection.onDocumentSymbol((identifier) => {
 					character: judgment.Column - 1,
 				},
 			},
-			children
+			children,
 		);
 
 		res.push(judgmentSymbol);
@@ -474,7 +536,7 @@ connection.onDidChangeWatchedFiles((change) => {
 // Looks for quickfixes in the `quickfixes` map and returns them if they exist
 connection.onCodeAction(async (params) => {
 	const textDocument: TextDocument | undefined = documents.get(
-		params.textDocument.uri
+		params.textDocument.uri,
 	);
 	if (textDocument == null) return [];
 
@@ -559,10 +621,10 @@ connection.onCodeAction(async (params) => {
 		if (ind != -1) {
 			old = {
 				start: textDocument.positionAt(
-					ind + textDocument.offsetAt(lineInfo.start)
+					ind + textDocument.offsetAt(lineInfo.start),
 				),
 				end: textDocument.positionAt(
-					ind + split[0].length + textDocument.offsetAt(lineInfo.start)
+					ind + split[0].length + textDocument.offsetAt(lineInfo.start),
 				),
 			};
 		}
@@ -720,12 +782,12 @@ connection.onCodeAction(async (params) => {
 									{
 										range: {
 											start: textDocument.positionAt(
-												oldStart + textDocument.offsetAt(lineInfo.start)
+												oldStart + textDocument.offsetAt(lineInfo.start),
 											),
 											end: textDocument.positionAt(
 												oldStart +
 													textDocument.offsetAt(lineInfo.start) +
-													oldText.length
+													oldText.length,
 											),
 										},
 										newText: " " + split[1],
@@ -752,12 +814,12 @@ connection.onCodeAction(async (params) => {
 											range: {
 												start: textDocument.positionAt(
 													lineIndent.length +
-														textDocument.offsetAt(lineInfo.start)
+														textDocument.offsetAt(lineInfo.start),
 												),
 												end: textDocument.positionAt(
 													lineIndent.length +
 														textDocument.offsetAt(lineInfo.start) +
-														oldText.length
+														oldText.length,
 												),
 											},
 											newText: "_: contradiction",
