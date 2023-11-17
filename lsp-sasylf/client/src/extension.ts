@@ -32,7 +32,10 @@ function validateHandler(_: any[]) {
 }
 
 function appHandler(_: any[]) {
-    const text = window.activeTextEditor?.document.getText();
+    const document = window.activeTextEditor.document;
+		const editor = window.activeTextEditor;
+		const cursor = window.activeTextEditor.selection.active;
+    const text = document.getText();
 
     if (!text) return;
 
@@ -58,7 +61,7 @@ function appHandler(_: any[]) {
 
         // Listen for stdout and stderr data
         childProcess.stdout.on('data', (data) => {
-            console.log('stdout:', data.toString());
+					editor.edit (editBuilder => { editBuilder.insert(cursor, data.toString()); });
         });
 
         childProcess.stderr.on('data', (data) => {
