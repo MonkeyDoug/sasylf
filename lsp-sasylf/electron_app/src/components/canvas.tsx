@@ -6,7 +6,7 @@ const Canvas = (props: { children: any }) => {
 		<div className="zoomable-canvas border border-5">
 			<TransformWrapper
 				limitToBounds={false}
-				panning={{ excluded: ["panning-excluded"] }}
+				panning={{ disabled: true, excluded: ["panning-excluded"] }}
 			>
 				{({ zoomIn, zoomOut, resetTransform }) => (
 					<>

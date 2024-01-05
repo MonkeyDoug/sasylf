@@ -92,7 +92,7 @@ function ProofNode(props: nodeProps) {
 
 export default function ProofArea() {
 	return (
-		<div className="d-flex proof-area">
+		<div className="d-flex proof-area panning-excluded">
 			<ProofNode conclusion="(s (z)) + n = (s n)" root />
 		</div>
 	);
