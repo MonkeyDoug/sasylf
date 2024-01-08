@@ -19,12 +19,10 @@ export default function Input(props: InputProps) {
 		const formData = new FormData(event.target);
 
 		const formJson = Object.fromEntries(formData.entries());
-		const conclusion: string = formJson.conclusion as string;
+		const input: string = formJson.input as string;
 		const free: boolean = formJson.hasOwnProperty("free");
-		console.log(formJson);
-		console.log(conclusion);
-		console.log(free);
-		props.inputs.push({ conclusion, free });
+		const inputType: string = formJson.type as string;
+		props.inputs.push({ input, free });
 		props.onHide();
 	}
 
@@ -35,15 +33,16 @@ export default function Input(props: InputProps) {
 			</Modal.Header>
 			<Modal.Body>
 				<Form method="post" onSubmit={handleExport}>
-					<InputGroup>
-						<InputGroup.Text>Conclusion</InputGroup.Text>
-						<Form.Control
-							name="conclusion"
-							type="text"
-							placeholder="(s (z)) + n = (s n)"
-						/>
-					</InputGroup>
-					<Form.Check // prettier-ignore
+					<Form.Select name="type">
+						<option value="conclusion">Conclusion</option>
+						<option value="premise">Premise</option>
+					</Form.Select>
+					<Form.Control
+						name="input"
+						type="text"
+						placeholder="(s (z)) + n = (s n)"
+					/>
+					<Form.Check
 						type="switch"
 						name="free"
 						label="Allow free variables"
