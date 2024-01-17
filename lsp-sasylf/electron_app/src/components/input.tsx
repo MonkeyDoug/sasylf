@@ -2,6 +2,8 @@ import React from "react";
 import Form from "react-bootstrap/Form";
 import InputGroup from "react-bootstrap/InputGroup";
 import Button from "react-bootstrap/Button";
+import DropdownButton from "react-bootstrap/DropdownButton";
+import Dropdown from "react-bootstrap/Dropdown";
 import Modal from "react-bootstrap/Modal";
 import { input } from "../types";
 
@@ -18,13 +20,14 @@ export default function Input(props: InputProps) {
 		const formData = new FormData(event.target as HTMLFormElement);
 
 		const formJson = Object.fromEntries(formData.entries());
-		const conclusion: string = formJson.conclusion as string;
+		const input: string = formJson.input as string;
 		const free: boolean = formJson.hasOwnProperty("free");
 		props.appendHandler({
-			conclusion,
+			input,
 			free,
 			id: Math.max(-1, ...props.inputs.map((element) => element.id)) + 1,
 		});
+		const inputType: string = formJson.type as string;
 		props.onHide();
 	};
 
@@ -35,13 +38,12 @@ export default function Input(props: InputProps) {
 			</Modal.Header>
 			<Modal.Body>
 				<Form method="post" onSubmit={handleExport}>
-					<InputGroup>
-						<InputGroup.Text>Conclusion</InputGroup.Text>
-						<Form.Control
-							name="conclusion"
-							type="text"
-							placeholder="(s (z)) + n = (s n)"
-						/>
+					<InputGroup className="mb-3">
+						<DropdownButton variant="outline-secondary" title="Dropdown">
+							<Dropdown.Item href="#">Conclusion</Dropdown.Item>
+							<Dropdown.Item href="#">Premises</Dropdown.Item>
+						</DropdownButton>
+						<Form.Control />
 					</InputGroup>
 					<Form.Check
 						type="switch"
