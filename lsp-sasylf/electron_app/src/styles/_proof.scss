@@ -62,9 +62,14 @@
 	font-family: "Courier New", monospace;
 }
 
-.topdown-close {
+.bottomup-close {
 	position: relative;
 	bottom: 29px;
+}
+
+.topdown-close {
+	position: relative;
+	bottom: 14px;
 }
 
 .drop-container {

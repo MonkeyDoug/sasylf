@@ -40,9 +40,10 @@ export default function Input(props: InputProps) {
 			}
 		}
 		props.appendHandler({
-			input: input.join(", "),
+			input,
 			free,
 			id: Math.max(-1, ...props.inputs.map((element) => element.id)) + 1,
+			type,
 		});
 		console.log(formJson);
 		props.onHide();
@@ -75,12 +76,13 @@ export default function Input(props: InputProps) {
 					{selectedType === "Premises" && (
 						/* Render Premises-specific form elements */
 						<>
-							{Array.from(Array(numInputs).keys()).map((i) => (
+							{Array.from(Array(numInputs).keys()).map((i, ind) => (
 								<Form.Control
 									name={`input-${i}`}
 									type="text"
 									placeholder="Enter premise"
 									className="m-1"
+									key={ind}
 								/>
 							))}
 							<Button

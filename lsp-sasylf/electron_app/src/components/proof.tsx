@@ -67,7 +67,15 @@ const getNumPremises = (ast: ast | null, rule: string) => {
 	return 0;
 };
 
-function TopDownNode({ prems }: { prems: string[] }) {
+function TopDownNode({
+	prems,
+	root,
+	deleteHandler,
+}: {
+	prems: string[];
+	root?: boolean;
+	deleteHandler?: (deleteId: number) => void;
+}) {
 	const { ast } = useContext(DroppedContext);
 	const file = useContext(FileContext);
 
@@ -165,10 +173,17 @@ function TopDownNode({ prems }: { prems: string[] }) {
 						fn: (ind: number) => deletePremise(ind),
 						level: false,
 					}}
+					deleteHandler={deleteHandler}
 					root
 				/>
 			) : (
 				<div className="d-flex flex-row topdown-node m-2">
+					{root ? (
+						<CloseButton
+							className="topdown-close"
+							onClick={() => (deleteHandler ? deleteHandler(id) : null)}
+						/>
+					) : null}
 					<div className="d-flex flex-column">
 						<div className="d-flex flex-row">
 							{premises.map((premise, ind) => (
@@ -282,13 +297,13 @@ function ProofNode(props: nodeProps) {
 		>
 			{props.root ? (
 				<CloseButton
-					className="topdown-close"
+					className="bottomup-close"
 					onClick={() => (props.deleteHandler ? props.deleteHandler(id) : null)}
 				/>
 			) : null}
 			{props.topdownHandler && props.topdownHandler.level ? (
 				<CloseButton
-					className="topdown-close"
+					className="bottomup-close"
 					onClick={() =>
 						props.topdownHandler?.fn(props.topdownHandler.ind as number)
 					}
@@ -378,19 +393,30 @@ export default function ProofArea(props: {
 }) {
 	return (
 		<div className="d-flex proof-area" ref={props.proofRef}>
-			{props.inputs.map(({ conclusion, free, id }, ind) => (
-				<ProofNode
-					className={`${free ? "free" : ""}`}
-					ind={ind}
-					key={id}
-					conclusion={conclusion}
-					tree={null}
-					deleteHandler={(deleteId: number) => {
-						props.deleteHandler(ind, deleteId);
-					}}
-					root
-				/>
-			))}
+			{props.inputs.map(({ input, free, id, type }, ind) =>
+				type === "Conclusion" ? (
+					<ProofNode
+						className={`${free ? "free" : ""}`}
+						ind={ind}
+						key={id}
+						conclusion={input[0]}
+						tree={null}
+						deleteHandler={(deleteId: number) => {
+							props.deleteHandler(ind, deleteId);
+						}}
+						root
+					/>
+				) : (
+					<TopDownNode
+						prems={input}
+						key={id}
+						deleteHandler={(deleteId: number) => {
+							props.deleteHandler(ind, deleteId);
+						}}
+						root
+					/>
+				),
+			)}
 		</div>
 	);
 }

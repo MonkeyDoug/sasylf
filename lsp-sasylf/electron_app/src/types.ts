@@ -77,8 +77,9 @@ export type line = {
 
 export type input = {
 	free: boolean;
-	input: string;
+	input: string[];
 	id: number;
+	type: string;
 };
 
 export type tab = {
