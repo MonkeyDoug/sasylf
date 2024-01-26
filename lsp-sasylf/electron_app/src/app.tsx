@@ -40,6 +40,7 @@ export default function MyApp() {
 
 	const shiftRef = useRef(false);
 	const proofRef = useRef<HTMLDivElement>(null);
+	// const [proofRef, setProofRef] = useState(null);
 	const bankRef = useRef<HTMLDivElement>(null);
 
 	useEffect(() => {
@@ -119,17 +120,12 @@ export default function MyApp() {
 		setActiveText(event.active.data.current?.text);
 
 	const deleteInput = (activeKey: number, ind: number, deleteId: number) => {
-		const startEvent = new CustomEvent("fade", {
-			detail: { deleteId },
-		});
-		document.dispatchEvent(startEvent);
-
 		const newTabs: tab[] = tabs.map((tab) => JSON.parse(JSON.stringify(tab)));
 
 		for (const tab of newTabs)
 			if (tab.id == activeKey) tab.inputs.splice(ind, 1);
 
-		setTimeout(() => setTabs(newTabs), 300);
+		setTabs(newTabs);
 	};
 
 	const appendInput = (activeKey: number, inp: input) => {
@@ -151,24 +147,13 @@ export default function MyApp() {
 		const overType = overData?.type;
 		const activeType = activeData?.type;
 
-		if (overType === "rule" && activeType === "rule" && !(over.id in dropped)) {
-			const startEvent = new CustomEvent("fade", {
-				detail: { deleteId: over.id },
-			});
-			document.dispatchEvent(startEvent);
-
+		if (overType === "rule" && activeType === "rule" && !(over.id in dropped))
 			addHandler(over.id, activeData?.text);
-		}
 		if (
 			activeType === "node" &&
 			((overType === "copy" && activeData?.text === overData?.text) ||
 				overType === "topdown")
 		) {
-			const startEvent = new CustomEvent("fade", {
-				detail: { deleteId: over.id },
-			});
-			document.dispatchEvent(startEvent);
-
 			const which = overType === "topdown";
 			const event = new CustomEvent(which ? "topdown-tree" : "tree", {
 				detail: {
@@ -181,6 +166,15 @@ export default function MyApp() {
 
 			if (shiftRef.current && activeData?.ind != null)
 				deleteInput(activeKey, activeData?.ind, active.id as number);
+		}
+		if (activeType === "rule" && overType === "topdown-rule") {
+			const event = new CustomEvent("topdown-rule", {
+				detail: {
+					overId: over.id,
+					text: activeData?.text,
+				},
+			});
+			document.dispatchEvent(event);
 		}
 	};
 
@@ -265,6 +259,8 @@ export default function MyApp() {
 									index={index}
 									canvasStates={canvasStates}
 									setCanvasStates={setCanvasStates}
+									inputs={element.inputs}
+									proofRef={proofRef}
 								>
 									<DroppedContext.Provider
 										value={{
