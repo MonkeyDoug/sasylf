@@ -566,40 +566,44 @@ public class Proof {
 		List<Term> addedTypes = new ArrayList<Term>();
 
 		if (c != null && r != null) {
-			RuleLike ruleLike = findRule(Proof.r);
-			syntaxTree.typecheck(ctx, id);
-			c.typecheck(ctx);
-			Element e = c.computeClause(ctx);
-			List<Fact> inputs = new ArrayList<Fact>();
-			List<Abstraction> addedContext = new ArrayList<Abstraction>();
+			try {
+				RuleLike ruleLike = findRule(Proof.r);
+				syntaxTree.typecheck(ctx, id);
+				c.typecheck(ctx);
+				Element e = c.computeClause(ctx);
+				List<Fact> inputs = new ArrayList<Fact>();
+				List<Abstraction> addedContext = new ArrayList<Abstraction>();
 
-			for (Element premise : ruleLike.getPremises()) {
-				inputs.add(premise.asFact(ctx, ctx.assumedContext));
-			}
+				for (Element premise : ruleLike.getPremises()) {
+					inputs.add(premise.asFact(ctx, ctx.assumedContext));
+				}
 
-			Term subject = ruleLike.checkApplication(
-					ctx, inputs, e.asFact(ctx, ctx.assumedContext), addedContext, null,
-					false, addedTypes, freshSub, adaptSub, varFree, true, false);
+				Term subject = ruleLike.checkApplication(
+						ctx, inputs, e.asFact(ctx, ctx.assumedContext), addedContext, null,
+						false, addedTypes, freshSub, adaptSub, varFree, true, false);
 
-			Set<FreeVar> conclusionFreeVars = new HashSet<FreeVar>();
-			Term pattern =
-					ruleLike.getFreshAdaptedRuleTerm(addedContext, conclusionFreeVars);
-			Substitution callSub = pattern.unify(subject);
-			Set<FreeVar> vars = e.asTerm().getFreeVariables();
-			callSub.avoid(vars);
-			Term actual = subject.substitute(callSub);
+				Set<FreeVar> conclusionFreeVars = new HashSet<FreeVar>();
+				Term pattern =
+						ruleLike.getFreshAdaptedRuleTerm(addedContext, conclusionFreeVars);
+				Substitution callSub = pattern.unify(subject);
+				Set<FreeVar> vars = e.asTerm().getFreeVariables();
+				callSub.avoid(vars);
+				Term actual = subject.substitute(callSub);
 
-			TermPrinter tp =
-					new TermPrinter(ctx, null, ruleLike.getLocation(), false);
-			if (ctx.inputVars == null) ctx.inputVars = new HashSet<FreeVar>();
-			if (ctx.outputVars == null) ctx.outputVars = new HashSet<FreeVar>();
-			if (ctx.recursiveTheorems == null)
-				ctx.recursiveTheorems = new HashMap<String, Theorem>();
+				TermPrinter tp =
+						new TermPrinter(ctx, null, ruleLike.getLocation(), false);
+				if (ctx.inputVars == null) ctx.inputVars = new HashSet<FreeVar>();
+				if (ctx.outputVars == null) ctx.outputVars = new HashSet<FreeVar>();
+				if (ctx.recursiveTheorems == null)
+					ctx.recursiveTheorems = new HashMap<String, Theorem>();
 
-			ArrayNode premiseNode = objectMapper.createArrayNode();
-			premises.put("arguments", premiseNode);
-			for (Term arg : ((Application)actual).getArguments()) {
-				premiseNode.add(tp.toString(tp.asClause(arg)));
+				ArrayNode premiseNode = objectMapper.createArrayNode();
+				premises.put("arguments", premiseNode);
+				for (Term arg : ((Application)actual).getArguments()) {
+					premiseNode.add(tp.toString(tp.asClause(arg)));
+				}
+			} catch (Exception e) {
+				premises.put("error", e.getMessage().split("error: ")[1]);
 			}
 		}
 
@@ -626,8 +630,8 @@ public class Proof {
 			// consistent with the number of premises expected by the rule
 
 			Term subject = ruleLike.checkApplication(
-					ctx, inputs, conclusion.asFact(ctx, ctx.assumedContext), addedContext, null,
-					true, addedTypes, freshSub, adaptSub, varFree, false, true);
+					ctx, inputs, conclusion.asFact(ctx, ctx.assumedContext), addedContext,
+					null, true, addedTypes, freshSub, adaptSub, varFree, false, true);
 
 			Set<FreeVar> conclusionFreeVars = new HashSet<FreeVar>();
 			Term pattern =

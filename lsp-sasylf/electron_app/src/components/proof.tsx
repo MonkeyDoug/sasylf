@@ -214,7 +214,9 @@ function ProofNode(props: nodeProps) {
 		if (id in dropped && !tree) {
 			(window as any).electronAPI
 				.parse(props.conclusion, dropped[id], file)
-				.then((res: string[]) => setArgs(res));
+				.then((res: { arguments?: string[]; error: string }) => {
+					if (res.arguments) setArgs(res.arguments);
+				});
 		} else setArgs(null);
 	}, [dropped]);
 	useEffect(() => {
