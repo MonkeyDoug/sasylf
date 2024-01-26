@@ -230,6 +230,8 @@ function ProofNode(props: nodeProps) {
 	const [id, setId] = useState(0);
 	const [args, setArgs] = useState<string[] | null>(null);
 	const [tree, setTree] = useState<line | null>(null);
+	const [showModal, setShowModal] = useState(false);
+	const [modalText, setModalText] = useState("");
 	let proofNodeRef = useRef(null);
 
 	const safeSetTree = (tree: line | null) =>
@@ -262,6 +264,11 @@ function ProofNode(props: nodeProps) {
 				.parse(props.conclusion, dropped[id], file)
 				.then((res: { arguments?: string[]; error: string }) => {
 					if (res.arguments) setArgs(res.arguments);
+					else {
+						setShowModal(true);
+						setModalText(res.error);
+						removeHandler(id);
+					}
 				});
 		} else setArgs(null);
 	}, [dropped]);
@@ -276,100 +283,109 @@ function ProofNode(props: nodeProps) {
 	}, [props.tree]);
 
 	return (
-		<div
-			className={`d-flex flex-row proof-node ${
-				props.className ? props.className : ""
-			} ${props.root ? "root-node" : "m-2"}`}
-			ref={proofNodeRef}
-		>
-			{props.root ? (
-				<CloseButton
-					className="topdown-close"
-					onClick={() => (props.deleteHandler ? props.deleteHandler(id) : null)}
-				/>
-			) : null}
-			{props.topdownHandler && props.topdownHandler.level ? (
-				<CloseButton
-					className="topdown-close"
-					onClick={() =>
-						props.topdownHandler?.fn(props.topdownHandler.ind as number)
-					}
-				/>
-			) : null}
-			<div className="d-flex flex-column">
-				{args ? (
-					<Premises
-						args={args}
-						tree={null}
-						topdownHandler={
-							props.topdownHandler && !props.topdownHandler.level
-								? props.topdownHandler
-								: null
-						}
-					/>
-				) : tree ? (
-					<Premises
-						args={[...tree.premises.map((value) => value.conclusion), ""]}
-						tree={tree}
-						topdownHandler={
-							props.topdownHandler && !props.topdownHandler.level
-								? props.topdownHandler
-								: null
-						}
-					/>
-				) : (
-					<Droppable
-						id={id + 1}
-						data={{ type: "copy", text: props.conclusion }}
-						className="d-flex stretch-container"
-					>
-						<div className="drop-node-area p-2">Copy node here</div>
-					</Droppable>
-				)}
-				<div className="node-line"></div>
-				<div className="d-flex flex-row conclusion">
-					<Form.Control
-						size="sm"
-						className="name-input panning-excluded m-1"
-						type="text"
-						placeholder="Name"
-					/>
-					<Draggable
-						id={id}
-						data={{
-							type: "node",
-							text: props.conclusion,
-							ind: props.root ? props.ind : null,
-						}}
-					>
-						<span className="centered-text no-wrap panning-excluded">
-							{props.conclusion}
-						</span>
-					</Draggable>
-				</div>
-			</div>
-			<Droppable
-				id={id}
-				data={{ type: "rule" }}
-				className="d-flex stretch-container"
+		<>
+			<ErrorModal
+				show={showModal}
+				text={modalText}
+				toggleShow={() => setShowModal(!showModal)}
+			/>
+			<div
+				className={`d-flex flex-row proof-node ${
+					props.className ? props.className : ""
+				} ${props.root ? "root-node" : "m-2"}`}
+				ref={proofNodeRef}
 			>
-				<div className="drop-area rule p-2">
-					{id in dropped ? (
-						<>
-							{dropped[id]}{" "}
-							<CloseButton
-								onClick={() => {
-									removeHandler(id);
-									setTree(null);
-								}}
-							/>
-						</>
+				{props.root ? (
+					<CloseButton
+						className="topdown-close"
+						onClick={() =>
+							props.deleteHandler ? props.deleteHandler(id) : null
+						}
+					/>
+				) : null}
+				{props.topdownHandler && props.topdownHandler.level ? (
+					<CloseButton
+						className="topdown-close"
+						onClick={() =>
+							props.topdownHandler?.fn(props.topdownHandler.ind as number)
+						}
+					/>
+				) : null}
+				<div className="d-flex flex-column">
+					{args ? (
+						<Premises
+							args={args}
+							tree={null}
+							topdownHandler={
+								props.topdownHandler && !props.topdownHandler.level
+									? props.topdownHandler
+									: null
+							}
+						/>
+					) : tree ? (
+						<Premises
+							args={[...tree.premises.map((value) => value.conclusion), ""]}
+							tree={tree}
+							topdownHandler={
+								props.topdownHandler && !props.topdownHandler.level
+									? props.topdownHandler
+									: null
+							}
+						/>
 					) : (
-						"Put rule here"
+						<Droppable
+							id={id + 1}
+							data={{ type: "copy", text: props.conclusion }}
+							className="d-flex stretch-container"
+						>
+							<div className="drop-node-area p-2">Copy node here</div>
+						</Droppable>
 					)}
+					<div className="node-line"></div>
+					<div className="d-flex flex-row conclusion">
+						<Form.Control
+							size="sm"
+							className="name-input panning-excluded m-1"
+							type="text"
+							placeholder="Name"
+						/>
+						<Draggable
+							id={id}
+							data={{
+								type: "node",
+								text: props.conclusion,
+								ind: props.root ? props.ind : null,
+							}}
+						>
+							<span className="centered-text no-wrap panning-excluded">
+								{props.conclusion}
+							</span>
+						</Draggable>
+					</div>
 				</div>
-			</Droppable>
-		</div>
+				<Droppable
+					id={id}
+					data={{ type: "rule" }}
+					className="d-flex stretch-container"
+				>
+					<div className="drop-area rule p-2">
+						{id in dropped ? (
+							<>
+								{dropped[id]}{" "}
+								<CloseButton
+									onClick={() => {
+										removeHandler(id);
+										setTree(null);
+									}}
+								/>
+							</>
+						) : (
+							"Put rule here"
+						)}
+					</div>
+				</Droppable>
+			</div>
+		</>
 	);
 }
 
